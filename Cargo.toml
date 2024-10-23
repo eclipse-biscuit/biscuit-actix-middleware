@@ -1,6 +1,6 @@
 [package]
 name = "biscuit-actix-middleware"
-version = "0.2.0"
+version = "0.3.0-alpha.1"
 edition = "2021"
 
 license = "Apache-2.0"
@@ -19,7 +19,7 @@ actix-web = { version = "4.3.1", default-features = false, features = [
     "macros",
 ] }
 actix-web-httpauth = "0.8.0"
-biscuit-auth = { version = "4.0.0", default-features = false }
+biscuit-auth = { version = "6.0.0-alpha.1", default-features = false, features = ["datalog-macro"] }
 derive_more = { version = "0.99.17", default-features = false }
 futures-util = { version = "0.3.28", default-features = false }
 time = { version = "0.3.20", default-features = false }
