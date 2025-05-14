@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2023 Tristan Germain <ge.tristan@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 use crate::error::{MiddlewareError, MiddlewareResult};
 use actix_web::{
     body::EitherBody,
@@ -67,7 +73,6 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 ///     HttpResponse::Ok().body("Hello admin!")
 /// }
 /// ```
-
 pub struct BiscuitMiddleware {
     public_key: Rc<dyn RootKeyProvider>,
     error_handler: ErrorHandler,

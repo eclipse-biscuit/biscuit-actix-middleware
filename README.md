@@ -63,3 +63,7 @@ async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
 [biscuit]: https://biscuitsec.org
 [bearer-token-auth]: https://datatracker.ietf.org/doc/html/rfc6750#section-2.1
 
+## Copyright - Licensing
+
+Copyright 2023 Tristan Germain
+Licensed under `Apache License 2.0`
