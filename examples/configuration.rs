@@ -4,8 +4,7 @@ use biscuit_auth::{macros::*, Biscuit, PublicKey};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let required_public_key: PublicKey = 
-        std::env::var("BISCUIT_PUBLIC_KEY")
+    let required_public_key: PublicKey = std::env::var("BISCUIT_PUBLIC_KEY")
             .expect("Missing BISCUIT_PUBLIC_KEY environment variable. You can fix it by using the following command to run the example: BISCUIT_PUBLIC_KEY=ed25519/2d6a07768e5768192870f91a6949cd09ce49865f2e2eb1241369c300ee7cc21f cargo run --example configuration")
     .parse()
     .expect("Couldn't parse public key");
@@ -15,7 +14,9 @@ async fn main() -> std::io::Result<()> {
             .ok()
             .and_then(|bytes_hex| {
                 Some(
-                    bytes_hex.parse().expect("Couldn't parse optional public key"),
+                    bytes_hex
+                        .parse()
+                        .expect("Couldn't parse optional public key"),
                 )
             });
 
