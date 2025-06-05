@@ -67,7 +67,6 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 ///     HttpResponse::Ok().body("Hello admin!")
 /// }
 /// ```
-
 pub struct BiscuitMiddleware {
     public_key: Rc<dyn RootKeyProvider>,
     error_handler: ErrorHandler,
