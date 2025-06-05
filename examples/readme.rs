@@ -10,7 +10,7 @@ use tracing_actix_web::TracingLogger;
 async fn main() -> std::io::Result<()> {
     let public_key = PublicKey::from_bytes_hex(
         &std::env::var("BISCUIT_PUBLIC_KEY")
-            .expect("Missing BISCUIT_PUBLIC_KEY environment variable. You can fix it by using the following command to run the example: BISCUIT_PUBLIC_KEY=2d6a07768e5768192870f91a6949cd09ce49865f2e2eb1241369c300ee7cc21f cargo run --example readme"),
+            .expect("Missing BISCUIT_PUBLIC_KEY environment variable. You can fix it by using the following command to run the example: BISCUIT_PUBLIC_KEY=2d6a07768e5768192870f91a6949cd09ce49865f2e2eb1241369c300ee7cc21f cargo run --example readme"), biscuit_auth::Algorithm::Ed25519
     )
     .expect("Couldn't parse public key");
 
@@ -59,13 +59,13 @@ The token has to be set in the authorization header:
 
 #[get("/hello")]
 async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
-    let mut authorizer = authorizer!(
+    let builder = authorizer!(
         r#"
       allow if role("admin");
     "#
     );
 
-    authorizer.add_token(&biscuit).unwrap();
+    let mut authorizer = builder.build(&biscuit).unwrap();
     if let Err(_e) = authorizer.authorize() {
         #[cfg(feature = "tracing")]
         warn!("{}", _e.to_string());

@@ -53,13 +53,13 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 /// #[get("/hello")]
 /// async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
 ///     println!("{}", biscuit.print());
-///     let mut authorizer = authorizer!(
+///     let mut builder = authorizer!(
 ///         r#"
 ///       allow if role("admin");
 ///     "#
 ///     );
 ///
-///     authorizer.add_token(&biscuit).unwrap();
+///     let mut authorizer = builder.build(&biscuit).unwrap();
 ///     if authorizer.authorize().is_err() {
 ///         return HttpResponse::Forbidden().finish();
 ///     }
