@@ -26,11 +26,10 @@ use biscuit_auth::{macros::*, Biscuit, PublicKey};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let public_key = PublicKey::from_bytes_hex(
-        &std::env::var("BISCUIT_PUBLIC_KEY")
-            .expect("Missing BISCUIT_PUBLIC_KEY environment variable"),
-    )
-    .expect("Couldn't parse public key");
+    let public_key: PublicKey = std::env::var("BISCUIT_PUBLIC_KEY")
+            .expect("Missing BISCUIT_PUBLIC_KEY environment variable")
+            .parse()
+            .expect("Couldn't parse public key");
 
     HttpServer::new(move || {
         App::new()
@@ -48,9 +47,7 @@ async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
         r#"
       allow if role("admin");
     "#
-    );
-
-    authorizer.add_token(&biscuit).unwrap();
+    ).build(&biscuit).unwrap();
     if authorizer.authorize().is_err() {
         return HttpResponse::Forbidden().finish();
     }
