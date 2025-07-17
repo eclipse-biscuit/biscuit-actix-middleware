@@ -48,9 +48,8 @@ async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
         r#"
       allow if role("admin");
     "#
-    );
+    ).build(&biscuit).unwrap();
 
-    authorizer.add_token(&biscuit).unwrap();
     if authorizer.authorize().is_err() {
         return HttpResponse::Forbidden().finish();
     }
