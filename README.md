@@ -1,4 +1,6 @@
-# Biscuit actix middleware
+# Eclipse Biscuit actix middleware
+
+This repo is part of the [eclipse biscuit](https://github.com/biscuit-auth/biscuit) project.
 
 This middleware allows service-wide extraction and parsing of [biscuit][biscuit] tokens.
 
