@@ -63,9 +63,7 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 ///         r#"
 ///       allow if role("admin");
 ///     "#
-///     );
-///
-///     authorizer.add_token(&biscuit).unwrap();
+///     ).build(&biscuit).unwrap();
 ///     if authorizer.authorize().is_err() {
 ///         return HttpResponse::Forbidden().finish();
 ///     }

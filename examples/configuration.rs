@@ -6,32 +6,30 @@
 
 use actix_web::{dev::ServiceRequest, get, web, App, HttpResponse, HttpServer};
 use biscuit_actix_middleware::BiscuitMiddleware;
-use biscuit_auth::{macros::*, Biscuit, PublicKey};
+use biscuit_auth::{macros::*, Biscuit};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let required_public_key = PublicKey::from_bytes_hex(
-        &std::env::var("BISCUIT_PUBLIC_KEY")
-            .expect("Missing BISCUIT_PUBLIC_KEY environment variable. You can fix it by using the following command to run the example: BISCUIT_PUBLIC_KEY=2d6a07768e5768192870f91a6949cd09ce49865f2e2eb1241369c300ee7cc21f cargo run --example configuration"),
-    )
+    let required_public_key =
+        std::env::var("BISCUIT_PUBLIC_KEY")
+            .expect("Missing BISCUIT_PUBLIC_KEY environment variable. You can fix it by using the following command to run the example: BISCUIT_PUBLIC_KEY=ed25519/2d6a07768e5768192870f91a6949cd09ce49865f2e2eb1241369c300ee7cc21f cargo run --example configuration")
+    .parse()
     .expect("Couldn't parse public key");
 
-    let optional_public_key =
-        std::env::var("BISCUIT_OPTIONAL_PUBLIC_KEY")
-            .ok()
-            .and_then(|bytes_hex| {
-                Some(
-                    PublicKey::from_bytes_hex(&bytes_hex)
-                        .expect("Couldn't parse optional public key"),
-                )
-            });
+    let optional_public_key = std::env::var("BISCUIT_OPTIONAL_PUBLIC_KEY")
+        .ok()
+        .map(|bytes_hex| {
+            bytes_hex
+                .parse()
+                .expect("Couldn't parse optional public key")
+        });
 
     println!(
         r#"
 This server exposes a single endpoint on `GET /hello`.
 The whole server requires a valid biscuit token. Its signature is verified
 by a public key provided through the `BISCUIT_PUBLIC_KEY` environment variable.
-The `GET /hello` endpoints expects a token containg `role("admin");`.
+The `GET /hello` endpoints expects a token containing `role("admin");`.
 
 You can generate a keypair and a token with the biscuit CLI:
 > biscuit keypair # generates a key pair
@@ -90,9 +88,9 @@ async fn hello(biscuit: web::ReqData<Biscuit>) -> HttpResponse {
         r#"
       allow if role("admin");
     "#
-    );
-
-    authorizer.add_token(&biscuit).unwrap();
+    )
+    .build(&biscuit)
+    .unwrap();
     if let Err(_e) = authorizer.authorize() {
         return HttpResponse::Forbidden().finish();
     }
@@ -124,13 +122,12 @@ mod key_provider {
     impl RootKeyProvider for KeyProvider {
         fn choose(&self, key_id: Option<u32>) -> Result<PublicKey, Format> {
             if self.roots.len() > 1 {
-                Ok(self
+                Ok(*self
                     .roots
                     .get(key_id.ok_or(Format::UnknownPublicKey)? as usize)
-                    .ok_or(Format::UnknownPublicKey)?
-                    .clone())
+                    .ok_or(Format::UnknownPublicKey)?)
             } else if self.roots.len() == 1 {
-                Ok(self.roots.last().unwrap().clone())
+                Ok(*self.roots.last().unwrap())
             } else {
                 Err(Format::EmptyKeys)
             }
@@ -159,10 +156,7 @@ mod error {
     }
 
     // ResponseError handler
-    pub fn middleware_app_error_handler<'a>(
-        err: MiddlewareError,
-        _: &'a ServiceRequest,
-    ) -> HttpResponse {
+    pub fn middleware_app_error_handler(err: MiddlewareError, _: &ServiceRequest) -> HttpResponse {
         match err {
             MiddlewareError::InvalidHeader => {
                 println!("Handle InvalidHeader error with custom handler");
