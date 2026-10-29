@@ -120,6 +120,7 @@ mod key_provider {
     }
 
     impl RootKeyProvider for KeyProvider {
+        type Key = PublicKey;
         fn choose(&self, key_id: Option<u32>) -> Result<PublicKey, Format> {
             if self.roots.len() > 1 {
                 Ok(*self
