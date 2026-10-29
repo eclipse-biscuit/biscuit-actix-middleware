@@ -12,7 +12,7 @@ use actix_web::{
     Error, HttpMessage, HttpResponse, ResponseError,
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
-use biscuit::{Biscuit, RootKeyProvider};
+use biscuit::{Biscuit, PublicKey, RootKeyProvider};
 use futures_util::future::LocalBoxFuture;
 use std::{
     future::{ready, Ready},
@@ -36,11 +36,11 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 /// ```rust
 /// use actix_web::{get, web, App, HttpResponse, HttpServer};
 /// use biscuit_actix_middleware::BiscuitMiddleware;
-/// use biscuit_auth::{macros::*, Biscuit, KeyPair};
+/// use biscuit_auth::{macros::*, Biscuit, PrivateKey};
 ///
 /// #[actix_web::main]
 /// async fn main() -> std::io::Result<()> {
-///     let root = KeyPair::new();
+///     let root = PrivateKey::new();
 ///     let public_key = root.public();
 ///
 ///     HttpServer::new(move || {
@@ -72,7 +72,7 @@ type TokenExtractor = fn(&ServiceRequest) -> Option<Vec<u8>>;
 /// }
 /// ```
 pub struct BiscuitMiddleware {
-    public_key: Rc<dyn RootKeyProvider>,
+    public_key: Rc<dyn RootKeyProvider<Key = PublicKey>>,
     error_handler: ErrorHandler,
     token_extractor: TokenExtractor,
 }
@@ -90,18 +90,18 @@ impl BiscuitMiddleware {
     ///
     /// ```rust
     /// use biscuit_actix_middleware::BiscuitMiddleware;
-    /// use biscuit_auth::KeyPair;
+    /// use biscuit_auth::PrivateKey;
     ///
-    /// BiscuitMiddleware::new(KeyPair::new().public());
+    /// BiscuitMiddleware::new(PrivateKey::new().public());
     /// ```
     ///
     /// Setup a simple KeyProvider that only accepts tokens with a root_key_id corresponding to an index of an existing [PublicKey](biscuit_auth::PublicKey)
     /// ```rust
-    /// use biscuit_auth::{error::Format, Biscuit, KeyPair, PublicKey, RootKeyProvider};
+    /// use biscuit_auth::{error::Format, Biscuit, PrivateKey, PublicKey, RootKeyProvider};
     /// use biscuit_actix_middleware::BiscuitMiddleware;
     ///
     /// struct KeyProvider {
-    ///     roots: Vec<KeyPair>,
+    ///     roots: Vec<PrivateKey>,
     /// }
     ///
     /// impl KeyProvider {
@@ -109,7 +109,7 @@ impl BiscuitMiddleware {
     ///         let mut new = KeyProvider { roots: vec![] };
     ///
     ///         for _ in 1..11 {
-    ///             new.roots.push(KeyPair::new());
+    ///             new.roots.push(PrivateKey::new());
     ///         }
     ///
     ///         new
@@ -117,6 +117,7 @@ impl BiscuitMiddleware {
     /// }
     ///
     /// impl RootKeyProvider for KeyProvider {
+    ///     type Key = PublicKey;
     ///     fn choose(&self, key_id: Option<u32>) -> Result<PublicKey, Format> {
     ///         Ok(self
     ///             .roots
@@ -132,7 +133,7 @@ impl BiscuitMiddleware {
     /// ```
     pub fn new<KP>(public_key: KP) -> BiscuitMiddleware
     where
-        KP: RootKeyProvider + 'static,
+        KP: RootKeyProvider<Key = PublicKey> + 'static,
     {
         BiscuitMiddleware {
             public_key: Rc::new(public_key),
@@ -147,7 +148,7 @@ impl BiscuitMiddleware {
     /// ```rust
     /// use biscuit_actix_middleware::{BiscuitMiddleware, error::*};
     ///
-    /// let root = KeyPair::new();
+    /// let root = PrivateKey::new();
     /// let public_key = root.public();
     ///     
     /// BiscuitMiddleware::new(public_key)
@@ -171,7 +172,7 @@ impl BiscuitMiddleware {
     ///
     /// use actix_web::{error::ResponseError, dev::ServiceRequest, HttpResponse};
     /// use derive_more::Display;
-    /// use biscuit_auth::KeyPair;
+    /// use biscuit_auth::PrivateKey;
     /// ```
     pub fn error_handler(
         mut self,
@@ -188,9 +189,9 @@ impl BiscuitMiddleware {
     /// ```rust
     /// use biscuit_actix_middleware::BiscuitMiddleware;
     /// use actix_web::{dev::ServiceRequest};
-    /// use biscuit_auth::KeyPair;
+    /// use biscuit_auth::PrivateKey;
     ///
-    /// let root = KeyPair::new();
+    /// let root = PrivateKey::new();
     /// let public_key = root.public();
     ///     
     /// BiscuitMiddleware::new(public_key)
@@ -252,7 +253,7 @@ where
 
 pub struct ImplBiscuitMiddleware<S> {
     service: S,
-    public_key: Rc<dyn RootKeyProvider>,
+    public_key: Rc<dyn RootKeyProvider<Key = PublicKey>>,
     error_handler: ErrorHandler,
     token_extractor: TokenExtractor,
 }
@@ -306,11 +307,12 @@ where
 mod test {
     use super::*;
     use actix_web::{http::StatusCode, test, web, App, HttpResponse};
-    use biscuit::KeyPair;
+    use biscuit::PrivateKey;
 
     #[actix_web::test]
     async fn test_nominal() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
+
         let app = test::init_service(
             App::new()
                 .wrap(BiscuitMiddleware::new(root.public()))
@@ -333,7 +335,7 @@ mod test {
 
     #[actix_web::test]
     async fn test_header_missing() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
         let app = test::init_service(
             App::new()
                 .wrap(BiscuitMiddleware::new(root.public()))
@@ -349,7 +351,7 @@ mod test {
 
     #[actix_web::test]
     async fn test_incorrect_headers() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
         let app = test::init_service(
             App::new()
                 .wrap(BiscuitMiddleware::new(root.public()))
@@ -384,7 +386,7 @@ mod test {
 
     #[actix_web::test]
     async fn test_error_handling() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
         let app = test::init_service(
             App::new()
                 .wrap(BiscuitMiddleware::new(root.public()).error_handler(
@@ -402,7 +404,7 @@ mod test {
 
     #[actix_web::test]
     async fn test_token_extractor() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
         let biscuit = Biscuit::builder().build(&root).unwrap();
 
         let app = test::init_service(
@@ -434,7 +436,7 @@ mod test {
 
     #[actix_web::test]
     async fn test_token_extractor_with_error_handling() {
-        let root = KeyPair::new();
+        let root = PrivateKey::new();
 
         let app = test::init_service(
             App::new()
